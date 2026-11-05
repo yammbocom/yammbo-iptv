@@ -192,8 +192,8 @@ function shuffle(arr) {
 }
 
 async function main() {
-  const [channels, streams, logos, blocklist, categories, countries] = await Promise.all(
-    ['channels', 'streams', 'logos', 'blocklist', 'categories', 'countries'].map(getJson),
+  const [channels, streams, logos, blocklist, categories, countries, feeds] = await Promise.all(
+    ['channels', 'streams', 'logos', 'blocklist', 'categories', 'countries', 'feeds'].map(getJson),
   );
 
   const chById = new Map(channels.map((c) => [c.id, c]));
@@ -247,6 +247,18 @@ async function main() {
     if (!cur || (cur.feed && !l.feed)) logoBy.set(l.channel, l);
   }
 
+  // Languages (ISO 639-3) per channel: those of its main feeds, or the union of
+  // all its feeds when none is flagged as main.
+  const mainLangs = new Map();
+  const allLangs = new Map();
+  for (const f of feeds) {
+    if (!f.channel) continue;
+    const target = f.is_main ? mainLangs : allLangs;
+    if (!target.has(f.channel)) target.set(f.channel, new Set());
+    for (const l of f.languages || []) target.get(f.channel).add(l);
+  }
+  const languagesOf = (id) => [...(mainLangs.get(id)?.size ? mainLangs.get(id) : allLangs.get(id) || [])];
+
   const catNames = Object.fromEntries(categories.map((c) => [c.id, c.name]));
   const countryNames = Object.fromEntries(countries.map((c) => [c.code, c.name]));
   const usedCats = {};
@@ -277,6 +289,10 @@ async function main() {
       country: c.country || null,
       categories: cats,
       logo: logoBy.get(id)?.url || null,
+      languages: languagesOf(id),
+      network: c.network || null,
+      // `list` is sorted best quality first.
+      hd: (qualityNum(list[0].quality) ?? 0) >= 720,
       website: c.website || null,
       streams: kept,
     });
