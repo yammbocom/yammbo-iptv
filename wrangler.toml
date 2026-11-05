@@ -1,0 +1,12 @@
+name = "yammbo-iptv"
+main = "src/index.ts"
+compatibility_date = "2026-04-27"
+workers_dev = false
+
+# No account_id and no routes on purpose: the route tv.yammbo.com/iptv/*
+# will be added after approval.
+
+tail_consumers = [{ service = "yammbo-tail" }]
+
+[vars]
+DATA_URL = "https://raw.githubusercontent.com/yammbocom/yammbo-iptv/data/channels.json"

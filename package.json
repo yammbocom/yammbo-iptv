@@ -1,0 +1,11 @@
+{
+  "name": "yammbo-iptv",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Stremio addon serving live TV channels listed by iptv-org",
+  "scripts": {
+    "build:data": "UV_THREADPOOL_SIZE=128 node scripts/build.mjs",
+    "dev": "wrangler dev"
+  }
+}
