@@ -53,7 +53,7 @@ const MAX_REDIRECTS = 5;
 // Redirects are followed by hand, the way a browser does a CORS fetch: every
 // hop must carry an open ACAO header and stay on https, or the player fails.
 // `cors` is the failure code used when a hop has no valid ACAO header.
-async function get(url, { readBody, cors }) {
+async function get(url, { readBody, cors, method = 'GET' }) {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
   try {
@@ -62,6 +62,7 @@ async function get(url, { readBody, cors }) {
     let res;
     for (let hop = 0; ; hop++) {
       res = await fetch(current.href, {
+        method,
         redirect: 'manual',
         signal: ctl.signal,
         headers: { Origin: tainted ? 'null' : ORIGIN, 'User-Agent': UA, Accept: '*/*' },
@@ -163,6 +164,14 @@ async function probe(url) {
     if (seg.protocol !== 'https:') throw new Fail('insecure_segment');
     const { res } = await get(seg.href, { readBody: false, cors: 'no_cors_segment' });
     if (res.status !== 200 && res.status !== 206) throw new Fail('http_status');
+    // The web player (stremio-video getContentType) first sends a CORS HEAD to
+    // the stream URL and only uses hls.js when the content-type is exactly
+    // this; anything else goes to <video src>, which Chrome can't play.
+    const head = await get(url, { readBody: false, cors: 'no_cors_head', method: 'HEAD' });
+    if (!head.res.ok) throw new Fail('head_status');
+    if (head.res.headers.get('content-type') !== 'application/vnd.apple.mpegurl') {
+      throw new Fail('head_not_hls');
+    }
     return { ok: true };
   } catch (e) {
     return { ok: false, reason: e instanceof Fail ? e.reason : 'error' };

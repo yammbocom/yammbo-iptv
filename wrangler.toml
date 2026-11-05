@@ -3,8 +3,9 @@ main = "src/index.ts"
 compatibility_date = "2026-04-27"
 workers_dev = false
 
-# No account_id and no routes on purpose: the route tv.yammbo.com/iptv/*
-# will be added after approval.
+# No account_id on purpose (public repo): deploy.sh exports it at deploy time.
+# Only /iptv/* : the rest of tv.yammbo.com stays on the origin.
+routes = [{ pattern = "tv.yammbo.com/iptv/*", zone_name = "yammbo.com" }]
 
 tail_consumers = [{ service = "yammbo-tail" }]
 

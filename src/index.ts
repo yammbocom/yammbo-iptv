@@ -306,11 +306,10 @@ async function route(request: Request, env: Env): Promise<Response> {
       url: s.url,
       name: 'Yammbo TV',
       title: `${s.quality ?? 'Auto'} · En vivo`,
-      behaviorHints: {
-        // Forces the player onto hls.js and skips the HEAD probe that many
-        // servers reject.
-        proxyHeaders: { response: { 'content-type': 'application/vnd.apple.mpegurl' } },
-      },
+      // No behaviorHints.proxyHeaders: stremio-core then rewrites the URL to the
+      // local streaming server (127.0.0.1:11470) even when there is none, and
+      // the web player never reaches the channel. The player's HEAD probe is
+      // checked by scripts/build.mjs instead.
     }));
     return json({ streams }, 200, 600);
   }
