@@ -203,6 +203,27 @@ function shuffle(arr) {
   return arr;
 }
 
+// A probe can stall on a promise that holds no timer or socket; Node then
+// exits 0 once nothing else is pending, before writing dist/ (a run on
+// 2026-11-05 stopped like that after 11.5k probes). The deadline timer keeps
+// the process alive and turns such a stall into a timeout.
+const PROBE_DEADLINE_MS = 60_000;
+function probeWithDeadline(url) {
+  let timer;
+  const deadline = new Promise((resolve) => {
+    timer = setTimeout(() => resolve({ ok: false, reason: 'timeout' }), PROBE_DEADLINE_MS);
+  });
+  return Promise.race([probe(url), deadline]).finally(() => clearTimeout(timer));
+}
+
+let finished = false;
+process.on('exit', (code) => {
+  if (!finished && code === 0) {
+    console.error('build exited with work still pending; failing');
+    process.exitCode = 1;
+  }
+});
+
 async function main() {
   const [channels, streams, logos, blocklist, categories, countries, feeds] = await Promise.all(
     ['channels', 'streams', 'logos', 'blocklist', 'categories', 'countries', 'feeds'].map(getJson),
@@ -238,7 +259,7 @@ async function main() {
       const i = next++;
       if (i >= candidates.length) return;
       const s = candidates[i];
-      const r = await probe(s.url);
+      const r = await probeWithDeadline(s.url);
       if (r.ok) {
         okCount++;
         if (!okByChannel.has(s.channel)) okByChannel.set(s.channel, []);
@@ -351,7 +372,9 @@ async function main() {
   console.log('failures:', JSON.stringify(failures));
 }
 
-main().catch((e) => {
+main().then(() => {
+  finished = true;
+}, (e) => {
   console.error(e);
   process.exit(1);
 });
