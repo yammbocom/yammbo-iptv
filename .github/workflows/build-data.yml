@@ -2,12 +2,17 @@ name: Build data
 
 on:
   schedule:
-    - cron: "17 3 * * *"
+    - cron: "17 3,15 * * *"
   workflow_dispatch:
 
 permissions:
   contents: write
   actions: write
+
+# Runs force-push the data branch: queue them so an older run never lands last.
+concurrency:
+  group: build-data
+  cancel-in-progress: false
 
 jobs:
   build:

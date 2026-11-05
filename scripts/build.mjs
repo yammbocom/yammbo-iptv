@@ -130,6 +130,14 @@ async function checkPlaylist(url, corsReason) {
   return { text, base: res.finalUrl };
 }
 
+function isM3u8Path(url) {
+  try {
+    return /\.m3u8$/i.test(new URL(url).pathname);
+  } catch {
+    return false;
+  }
+}
+
 async function probe(url) {
   try {
     let { text, base } = await checkPlaylist(url, 'no_cors_playlist');
@@ -167,6 +175,10 @@ async function probe(url) {
     // The web player (stremio-video getContentType) first sends a CORS HEAD to
     // the stream URL and only uses hls.js when the content-type is exactly
     // this; anything else goes to <video src>, which Chrome can't play.
+    // .m3u8 paths skip it: browsers with native HLS fall back to <video src>
+    // and the rest get hls.js without the HEAD (Yammbo-Tv-web
+    // patches/getContentType.yambo-hls.js, same isM3u8Path test).
+    if (isM3u8Path(url)) return { ok: true };
     const head = await get(url, { readBody: false, cors: 'no_cors_head', method: 'HEAD' });
     if (!head.res.ok) throw new Fail('head_status');
     if (head.res.headers.get('content-type') !== 'application/vnd.apple.mpegurl') {
