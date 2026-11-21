@@ -1,0 +1,1 @@
+{"probed":12467,"ok":7189,"failures":{"http_status":2005,"error":824,"no_cors_playlist":1921,"no_m3u":101,"no_cors_variant":69,"timeout":320,"no_cors_segment":15,"insecure_redirect":15,"insecure_variant":3,"head_not_hls":2,"insecure_segment":3}}
